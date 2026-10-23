@@ -841,7 +841,7 @@ function MemberCard({
 
   function save() {
     const trimmed = votes.trim();
-    if (trimmed !== "" && !/^\d+$/.test(trimmed)) {
+    if (trimmed !== "" && !/^\\d+$/.test(trimmed)) {
       setError("عدد الأصوات يبقى رقم.");
       return;
     }
@@ -866,32 +866,41 @@ function MemberCard({
         ) : null}
       </div>
       {stage !== "secondary" ? (
-        <div className={`mt-3 flex items-center gap-3 rounded-xl bg-paper p-2 sm:p-3 ${featured ? "min-h-36" : ""}`}>
+        <div
+          className={`mt-3 flex gap-4 rounded-2xl bg-paper p-4 ${featured ? "flex-col items-center text-center" : "items-center"}`}
+        >
           {member.photo ? (
             <img
               src={member.photo}
               alt={`صورة ${member.name || roleTitle(member.role)}`}
-              className={`shrink-0 rounded-xl object-cover ${featured ? "h-32 w-32 sm:h-36 sm:w-36" : "h-20 w-20"}`}
+              className={`shrink-0 rounded-2xl object-cover ${featured ? "h-44 w-44 sm:h-56 sm:w-56" : "h-20 w-20 rounded-xl"}`}
             />
           ) : (
-            <div className={`grid shrink-0 place-items-center rounded-xl border border-dashed border-line bg-card text-muted ${featured ? "h-32 w-32 sm:h-36 sm:w-36" : "h-20 w-20"}`}>
-              <Camera className="h-7 w-7" aria-hidden="true" />
+            <div
+              className={`grid shrink-0 place-items-center border border-dashed border-line bg-card text-muted ${featured ? "h-44 w-44 rounded-2xl sm:h-56 sm:w-56" : "h-20 w-20 rounded-xl"}`}
+            >
+              <Camera className={featured ? "h-12 w-12" : "h-7 w-7"} aria-hidden="true" />
             </div>
           )}
-          <div className="grid min-w-0 flex-1 gap-2">
+          <div className={`grid gap-2 ${featured ? "w-full justify-items-center" : "min-w-0 flex-1"}`}>
             {featured && !editing ? (
               <>
-                <p className="text-lg font-extrabold leading-snug">{member.name || "لم يُسجّل بعد"}</p>
-                <p className="text-sm font-bold text-gold">
+                <p className="text-xl font-extrabold leading-snug sm:text-2xl">
+                  {member.name || "لم يُسجّل بعد"}
+                </p>
+                <p className="text-base font-bold text-gold">
                   {member.votes == null ? "من غير أصوات" : `${member.votes} صوت`}
                 </p>
               </>
             ) : null}
-            {!member.photo ? (
+            {!member.photo && !featured ? (
+              <span className="text-xs font-semibold text-muted">الصورة غير مضافة</span>
+            ) : null}
+            {featured && !member.photo && !editing ? (
               <span className="text-xs font-semibold text-muted">الصورة غير مضافة</span>
             ) : null}
             {isAdmin ? (
-              <>
+              <div className={`grid gap-2 ${featured ? "w-full max-w-sm grid-cols-2" : ""}`}>
                 <label className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full bg-green px-3 text-xs font-bold text-paper">
                   {member.photo ? "تغيير الصورة" : "إضافة صورة العضو"}
                   <input
@@ -925,7 +934,7 @@ function MemberCard({
                     حذف الصورة
                   </button>
                 ) : null}
-              </>
+              </div>
             ) : null}
             {photoError ? (
               <p className="max-w-48 text-xs font-bold text-red">{photoError}</p>
@@ -973,15 +982,16 @@ function MemberCard({
               </p>
             </>
           ) : null}
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-paper">
-            <div className="h-full bg-green" style={{ width: `${width}%` }} />
-          </div>
+          {!featured ? (
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-paper">
+              <div className="h-full bg-green" style={{ width: `${width}%` }} />
+            </div>
+          ) : null}
         </>
       )}
     </article>
   );
 }
-
 function compressMemberPhoto(file: File, maxDimension = 720, quality = 0.8) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
