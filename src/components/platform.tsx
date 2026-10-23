@@ -757,7 +757,7 @@ function Offices({
           </button>
         ))}
       </div>
-      <p className="rounded-2xl border border-line bg-card px-4 py-3 text-sm">{office.note}</p>
+      <p className="rounded-2xl border border-line bg-card px-4 py-3 text-sm">{stage === "secondary" ? "يمكن للإدارة إضافة صور لأعضاء المكتب الثانوي. اللجنة الاجتماعية متروكة فارغة وقابلة للتعديل من الإدارة." : office.note}</p>
       <div
         dir="rtl"
         role="group"
