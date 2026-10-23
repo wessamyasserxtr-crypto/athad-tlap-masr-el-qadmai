@@ -674,6 +674,10 @@ function Offices({
   const isAdmin = session?.role === "admin";
   const [speaking, setSpeaking] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<RoleId | "all">("amin");
+  const visibleMembers = selectedRole === "all"
+    ? office.members
+    : office.members.filter((member) => member.role === selectedRole);
   const top = Math.max(...office.members.map((member) => member.votes ?? 0), 1);
 
   useEffect(() => {
@@ -715,6 +719,7 @@ function Offices({
   function selectStage(nextStage: StageId) {
     if (speechSupported) window.speechSynthesis.cancel();
     setSpeaking(false);
+    setSelectedRole("amin");
     onStage(nextStage);
   }
 
@@ -755,24 +760,50 @@ function Offices({
         ))}
       </div>
       <p className="rounded-2xl border border-line bg-card px-4 py-3 text-sm">{office.note}</p>
-      <div dir="rtl" className="flex gap-2 overflow-x-auto pb-1">
+      <div
+        dir="rtl"
+        role="group"
+        aria-label="اختاري دورًا في المكتب التنفيذي"
+        className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
+      >
+        <button
+          type="button"
+          onClick={() => setSelectedRole("all")}
+          aria-pressed={selectedRole === "all"}
+          className={`min-h-11 rounded-xl px-3 text-sm font-bold ${selectedRole === "all" ? "bg-green text-paper" : "border border-line bg-card text-ink"}`}
+        >
+          عرض الكل
+        </button>
         {roles.map((role, index) => (
-          <span
+          <button
             key={role.id}
-            className="shrink-0 rounded-full bg-paper px-3 py-1 text-xs font-bold text-ink-soft"
+            type="button"
+            onClick={() => setSelectedRole(role.id)}
+            aria-pressed={selectedRole === role.id}
+            className={`min-h-11 rounded-xl px-3 text-sm font-bold ${selectedRole === role.id ? "bg-green text-paper" : "border border-line bg-card text-ink"}`}
           >
-            {index + 1}. {role.title.replace("اللجنة ", "")}
-          </span>
+            <span className="me-1 text-[10px] opacity-75">{index + 1}.</span>
+            {role.title.replace("اللجنة ", "")}
+          </button>
         ))}
       </div>
-      <div dir="rtl" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {office.members.map((member) => (
+      <p className="text-xs font-bold text-muted" aria-live="polite">
+        {selectedRole === "all"
+          ? "كل أعضاء المكتب"
+          : `بطاقة ${roleTitle(selectedRole)}`}
+      </p>
+      <div
+        dir="rtl"
+        className={`grid gap-3 ${selectedRole === "all" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}
+      >
+        {visibleMembers.map((member) => (
           <MemberCard
             key={member.role}
             stage={office.id}
             member={member}
             top={top}
             isAdmin={isAdmin}
+            featured={selectedRole !== "all"}
           />
         ))}
       </div>
@@ -785,11 +816,13 @@ function MemberCard({
   member,
   top,
   isAdmin,
+  featured,
 }: {
   stage: StageId;
   member: Member;
   top: number;
   isAdmin: boolean;
+  featured: boolean;
 }) {
   const updateMember = useUnion((state) => state.updateMember);
   const updateMemberPhoto = useUnion((state) => state.updateMemberPhoto);
@@ -818,7 +851,7 @@ function MemberCard({
   }
 
   return (
-    <article className="flex flex-col rounded-2xl border border-line bg-card p-4">
+    <article className={`flex w-full flex-col rounded-2xl border border-line bg-card p-4 ${featured ? "max-w-3xl" : ""}`}>
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-sm font-extrabold text-green">{roleTitle(member.role)}</h2>
         {isAdmin ? (
@@ -833,19 +866,27 @@ function MemberCard({
         ) : null}
       </div>
       {stage !== "secondary" ? (
-        <div className="mt-3 flex items-center gap-3 rounded-xl bg-paper p-2">
+        <div className={`mt-3 flex items-center gap-3 rounded-xl bg-paper p-2 sm:p-3 ${featured ? "min-h-36" : ""}`}>
           {member.photo ? (
             <img
               src={member.photo}
               alt={`صورة ${member.name || roleTitle(member.role)}`}
-              className="h-20 w-20 shrink-0 rounded-xl object-cover"
+              className={`shrink-0 rounded-xl object-cover ${featured ? "h-32 w-32 sm:h-36 sm:w-36" : "h-20 w-20"}`}
             />
           ) : (
-            <div className="grid h-20 w-20 shrink-0 place-items-center rounded-xl border border-dashed border-line bg-card text-muted">
+            <div className={`grid shrink-0 place-items-center rounded-xl border border-dashed border-line bg-card text-muted ${featured ? "h-32 w-32 sm:h-36 sm:w-36" : "h-20 w-20"}`}>
               <Camera className="h-7 w-7" aria-hidden="true" />
             </div>
           )}
-          <div className="grid gap-2">
+          <div className="grid min-w-0 flex-1 gap-2">
+            {featured && !editing ? (
+              <>
+                <p className="text-lg font-extrabold leading-snug">{member.name || "لم يُسجّل بعد"}</p>
+                <p className="text-sm font-bold text-gold">
+                  {member.votes == null ? "من غير أصوات" : `${member.votes} صوت`}
+                </p>
+              </>
+            ) : null}
             {!member.photo ? (
               <span className="text-xs font-semibold text-muted">الصورة غير مضافة</span>
             ) : null}
@@ -922,12 +963,16 @@ function MemberCard({
         </div>
       ) : (
         <>
-          <p className="mt-3 text-lg font-extrabold leading-snug">
-            {member.name || "لم يُسجّل بعد"}
-          </p>
-          <p className="mt-2 text-sm font-bold text-gold">
-            {member.votes == null ? "من غير أصوات" : `${member.votes} صوت`}
-          </p>
+          {!featured || stage === "secondary" ? (
+            <>
+              <p className="mt-3 text-lg font-extrabold leading-snug">
+                {member.name || "لم يُسجّل بعد"}
+              </p>
+              <p className="mt-2 text-sm font-bold text-gold">
+                {member.votes == null ? "من غير أصوات" : `${member.votes} صوت`}
+              </p>
+            </>
+          ) : null}
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-paper">
             <div className="h-full bg-green" style={{ width: `${width}%` }} />
           </div>
