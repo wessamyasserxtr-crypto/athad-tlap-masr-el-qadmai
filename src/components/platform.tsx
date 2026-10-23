@@ -967,7 +967,7 @@ function MemberCard({
         </div>
       ) : (
         <>
-          {!featured || stage === "secondary" ? (
+          {!featured ? (
             <>
               <p className="mt-3 text-lg font-extrabold leading-snug">
                 {member.name || "لم يُسجّل بعد"}
@@ -2115,7 +2115,7 @@ function Desk({ onOpen }: { onOpen: (view: View) => void }) {
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {([
-          ["offices", "إدارة أسماء المكاتب والصور", "عدّلي الفائزين والأصوات وصور الابتدائي والإعدادي."],
+          ["offices", "إدارة أسماء المكاتب والصور", "عدّلي الفائزين والأصوات وصور أعضاء المراحل الثلاث."],
           ["plan", "إدارة الخطة", "أضيفي الأنشطة، عدّليها، وحددي ما نُفذ وانشري الخطة."],
           ["ideas", "أفكار المدارس", "استخرجي أفكار لوحات وأنشطة مرتبطة بمحاور العام."],
           ["gallery", "إدارة المعرض", "ارفعي صورًا واختاري ألبومها واكتبي وصفها."],
