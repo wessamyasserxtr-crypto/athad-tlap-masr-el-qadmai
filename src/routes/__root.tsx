@@ -3,7 +3,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "اتحادات طلاب إدارة مصر القديمة | طالب عالمي متجذر";
+const APP_NAME = "اتحاد طلاب مصر القديمة | طالب عالمي متجذر";
 
 export const Route = createRootRoute({
   head: () => ({

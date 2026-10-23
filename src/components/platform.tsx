@@ -231,12 +231,12 @@ export function Platform() {
           >
             <img
               src="/gallery/union-logo.jpeg"
-              alt="شعار اتحاد طلاب مدارس مصر"
+              alt="شعار اتحاد طلاب مصر القديمة"
               className="h-10 w-10 shrink-0 rounded-full border border-gold bg-white object-contain p-0.5 sm:h-11 sm:w-11"
             />
             <span className="min-w-0">
               <span className="block truncate text-xs font-extrabold leading-tight sm:text-base">
-                اتحاد طلاب إدارة مصر القديمة التعليمية
+                اتحاد طلاب مصر القديمة
               </span>
               <span className="hidden text-xs font-semibold text-gold sm:block">
                 صوتنا · إبداعنا · إنجازنا
@@ -446,7 +446,7 @@ function SiteFooter({ onOpen }: { onOpen: (view: View) => void }) {
       <div className="mx-auto grid max-w-6xl gap-7 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
           <div className="lotus-divider mb-3"><span>𓂀</span></div>
-          <p className="text-sm font-extrabold">اتحاد طلاب إدارة مصر القديمة التعليمية</p>
+          <p className="text-sm font-extrabold">اتحاد طلاب مصر القديمة</p>
           <p className="mt-2 max-w-md text-xs leading-6 text-muted">منصة اتحاد الطلاب للعام الدراسي ٢٠٢٦ / ٢٠٢٧، تجمع بين الاعتزاز بالهوية المصرية والانفتاح الواعي على العالم.</p>
         </div>
         <div>
@@ -499,7 +499,7 @@ function EntrySplash() {
         </div>
         <div className="entry-copy">
           <p className="entry-kicker">إدارة مصر القديمة التعليمية</p>
-          <h1>اتحادات طلاب المدارس</h1>
+          <h1>اتحاد طلاب مصر القديمة</h1>
           <p>طالب عالمي متجذر · خطة ٢٠٢٦ / ٢٠٢٧</p>
         </div>
         <div className="entry-progress" aria-hidden="true"><span /></div>
@@ -521,7 +521,7 @@ function EntryLogin({ onSuccess }: { onSuccess: () => void }) {
       <div className="entry-ornament entry-ornament-two" aria-hidden="true">𓋹</div>
       <section className="entry-login-card">
         <div className="entry-login-brand">
-          <img src="/gallery/union-logo.jpeg" alt="شعار اتحاد طلاب مدارس مصر" />
+          <img src="/gallery/union-logo.jpeg" alt="شعار اتحاد طلاب مصر القديمة" />
           <div>
             <p className="entry-kicker">إدارة مصر القديمة التعليمية</p>
             <h1>أهلًا بيك في اتحاد الطلاب</h1>
@@ -586,8 +586,8 @@ function Home({ onOpen, onOpenStage }: { onOpen: (view: View) => void; onOpenSta
     <div className="grid gap-7">
       <section className="portal-hero">
         <div className="portal-hero-copy">
-          <p className="portal-kicker">منصة اتحاد الطلاب 360° · إدارة مصر القديمة التعليمية</p>
-          <h1>اتحاد طلاب إدارة مصر القديمة التعليمية</h1>
+          <p className="portal-kicker">منصة اتحاد طلاب مصر القديمة 360°</p>
+          <h1>اتحاد طلاب مصر القديمة</h1>
           <p className="portal-tagline">صوتنا <span>•</span> إبداعنا <span>•</span> إنجازنا</p>
           <p className="mt-3 max-w-xl text-sm leading-7 text-white/80 sm:text-base">مساحة طلابية رسمية تجمع أخبار الاتحاد وأنشطته ومواهبه ولوائحه، وتتيح للطلاب المشاركة بأفكارهم.</p>
           <div className="mt-5 flex flex-wrap gap-2">
@@ -1875,7 +1875,7 @@ function News() {
   return (
     <section className="grid gap-4">
       <div>
-        <p className="text-xs font-extrabold text-gold-deep">اتحادات طلاب إدارة مصر القديمة التعليمية</p>
+        <p className="text-xs font-extrabold text-gold-deep">اتحاد طلاب مصر القديمة</p>
         <h1 className="mt-1 text-2xl font-extrabold">الأخبار</h1>
         <p className="mt-1 text-sm text-muted">آخر ما نُشر على المنصة، مرتبًا حسب تاريخ النشر.</p>
       </div>

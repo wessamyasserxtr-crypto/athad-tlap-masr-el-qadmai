@@ -116,7 +116,7 @@ export function PortalSurface({
 function AboutUnion() {
   const objectives = verifiedKnowledge[0];
   return <section>
-    <PageIntro eyebrow="عن الاتحاد" title="اتحاد طلاب إدارة مصر القديمة التعليمية" detail="مساحة مدرسية لعرض أخبار الاتحاد وأنشطته ومصادره الرسمية، وإتاحة صوت الطلاب." icon={<Users />} />
+    <PageIntro eyebrow="عن الاتحاد" title="اتحاد طلاب مصر القديمة" detail="مساحة مدرسية لعرض أخبار الاتحاد وأنشطته ومصادره الرسمية، وإتاحة صوت الطلاب." icon={<Users />} />
     <div className="grid gap-4 md:grid-cols-2">
       <article className="portal-panel"><h2 className="font-extrabold">أهداف الخطة المرفقة</h2><p className="mt-2 text-xs text-muted">من خطة الاتحادات الطلابية للعام الدراسي 2026 / 2027 · الصفحة 2</p><ul className="mt-3 list-inside list-disc space-y-2 text-sm leading-7 text-ink-soft">{objectives.content.split("\n").map((goal) => <li key={goal}>{goal}</li>)}</ul><a href={objectives.source_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-10 items-center gap-2 text-sm font-extrabold text-teal underline">فتح الخطة الرسمية <ExternalLink className="h-4 w-4" /></a></article>
       <article className="portal-panel"><h2 className="font-extrabold">أقسام المنصة</h2><p className="mt-2 text-sm leading-7 text-ink-soft">تجد هنا المكاتب الطلابية، الخطة، الأخبار والفعاليات، المسابقات، المبادرات، إنجازات المدارس، معرض الصور، القوانين واللوائح، وقناة صوت الطالب.</p><p className="mt-4 rounded-xl bg-blue-soft p-3 text-xs leading-6 text-navy">تعرض المنصة المستندات المقدمة كما هي، وتوضح حالة المصدر عندما تحتاج الوثيقة إلى مراجعة أو نسخة قابلة للبحث.</p></article>
