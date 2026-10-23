@@ -16,6 +16,10 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       { name: "description", content: APP_DESCRIPTION },
       { name: "robots", content: "index, follow, max-image-preview:large" },
+      {
+        name: "google-site-verification",
+        content: "4Kndr7ABSrdnZMbDyw_7HeVK7bt2PqpbbNyHML42f5o",
+      },
       { name: "theme-color", content: "#c8102e" },
       { property: "og:type", content: "website" },
       { property: "og:locale", content: "ar_EG" },
