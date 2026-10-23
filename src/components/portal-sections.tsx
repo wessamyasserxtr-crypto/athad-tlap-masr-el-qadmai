@@ -25,6 +25,14 @@ import {
 import { campaignAxes } from "@/lib/union-data";
 import { facebookSourceUrl, officialDocuments, verifiedKnowledge } from "@/lib/knowledge";
 import {
+  getSharedSiteState,
+  loginSharedAdmin,
+  logoutSharedAdmin,
+  removeSharedSiteSuggestion,
+  submitSharedSiteSuggestion,
+  updateSharedSiteSuggestion,
+} from "@/lib/shared-state";
+import {
   useUnion,
   type ManagedContentItem,
   type ManagedContentType,
@@ -126,9 +134,9 @@ function StudentGuide({ onOpen }: { onOpen: (view: string) => void }) {
     { id: "activities", category: "الخطة والأنشطة", question: "أين أتابع الأنشطة والفعاليات؟", answer: "تعرض صفحة الفعاليات المواد التي أُضيفت إلى المنصة، مع رابط المصدر وتاريخه عند توفرهما. إذا لم يظهر إعلان، فلا توجد فعالية مسجلة هنا حتى الآن.", view: "events" },
     { id: "documents", category: "المستندات الرسمية", question: "أين أجد القرارات واللوائح؟", answer: `يضم مركز الوثائق ${officialDocuments.length} ملفات مرفقة. افتح النسخة الأصلية من البطاقة المناسبة للتحقق من نصها.`, view: "laws" },
     { id: "discipline", category: "المستندات الرسمية", question: "هل يفسر الموقع لائحة الانضباط؟", answer: discipline?.note ?? "يتيح الموقع الملف الأصلي فقط." , source: discipline?.title, sourceUrl: discipline?.sourceUrl, view: "discipline" },
-    { id: "suggestion", category: "استخدام الموقع", question: "كيف أرسل فكرة أو ملاحظة؟", answer: "استخدم صفحة صوت الطالب لكتابة المشاركة. في هذه النسخة تُحفظ المشاركة على هذا الجهاز فقط، ولا تصل إلى إدارة المدرسة أو لوحة مشتركة.", view: "box" },
-    { id: "talent", category: "استخدام الموقع", question: "كيف أشارك موهبتي؟", answer: "افتح صفحة مواهب الطلاب، واختر نوع المشاركة واكتب وصفًا مختصرًا بلا بيانات شخصية. الحفظ في النسخة الحالية محلي على الجهاز.", view: "talents" },
-    { id: "content", category: "استخدام الموقع", question: "هل لوحة الإدارة تنشر المحتوى للمدارس؟", answer: "اللوحة الحالية معاينة محلية؛ ما يُضاف إليها يُحفظ في متصفح هذا الجهاز ولا يظهر لزوار الأجهزة الأخرى. النشر المشترك يتطلب ربط خادم وحسابات فعلية.", view: "desk" },
+    { id: "suggestion", category: "استخدام الموقع", question: "كيف أرسل فكرة أو ملاحظة؟", answer: "استخدم صفحة صوت الطالب لكتابة المشاركة. تصل المشاركة إلى صندوق مراجعة الإدارة، ولا تظهر للطلاب.", view: "box" },
+    { id: "talent", category: "استخدام الموقع", question: "كيف أشارك موهبتي؟", answer: "افتح صفحة مواهب الطلاب واكتب وصفًا مختصرًا بلا بيانات شخصية. تصل المشاركة إلى الإدارة للمراجعة ولا تُنشر تلقائيًا.", view: "talents" },
+    { id: "content", category: "استخدام الموقع", question: "هل لوحة الإدارة تنشر المحتوى للمدارس؟", answer: "نعم. بعد دخول الإدارة، تُحفظ التعديلات في قاعدة بيانات الموقع المشتركة وتظهر للزوار.", view: "desk" },
   ];
   const categories = ["الكل", ...new Set(faq.map((item) => item.category))];
   const filtered = faq.filter((item) => (category === "الكل" || item.category === category) && normalizeArabic(`${item.question} ${item.answer} ${item.category}`).includes(normalizeArabic(query.trim())));
@@ -271,6 +279,7 @@ function Talents() {
   const [kind, setKind] = useState("فن ورسم");
   const [text, setText] = useState("");
   const [status, setStatus] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const kinds = ["فن ورسم", "تصوير", "كتابة", "برمجة", "ابتكار", "مسرح وأداء", "موسيقى", "أخرى"];
   return (
     <section>
@@ -279,11 +288,20 @@ function Talents() {
         <div className="grid gap-3 sm:grid-cols-2">
           {kinds.map((label) => <div key={label} className="rounded-xl border border-line bg-white p-4"><p className="font-extrabold">{label}</p><p className="mt-1 text-xs text-muted">استقبال المشاركة للمراجعة</p></div>)}
         </div>
-        <form className="portal-form" onSubmit={(event) => {
+        <form className="portal-form" onSubmit={async (event) => {
           event.preventDefault();
-          const error = addSuggestion(text, `موهبة · ${kind}`);
-          setStatus(error ?? "تم حفظ المشاركة للمراجعة على هذا الجهاز.");
-          if (!error) setText("");
+          setSubmitting(true);
+          setStatus("");
+          try {
+            await submitSharedSiteSuggestion({ data: { message: text, stage: `موهبة · ${kind}` } });
+            addSuggestion(text, `موهبة · ${kind}`);
+            setStatus("تم إرسال المشاركة إلى صندوق مراجعة الإدارة.");
+            setText("");
+          } catch {
+            setStatus("تعذر إرسال المشاركة الآن. تحققي من الاتصال وحاولي مرة أخرى.");
+          } finally {
+            setSubmitting(false);
+          }
         }}>
           <h2 className="font-extrabold">شارك موهبتك</h2>
           <label className="grid gap-1 text-xs font-bold text-muted">نوع المشاركة
@@ -293,8 +311,8 @@ function Talents() {
             <textarea value={text} onChange={(event) => setText(event.target.value)} rows={4} required minLength={4} maxLength={800} className="rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="اكتب نبذة عن موهبتك أو عملك، من غير بيانات شخصية." />
           </label>
           {status ? <p role="status" className="text-xs font-bold text-teal">{status}</p> : null}
-          <button type="submit" className="portal-primary-button"><Send className="h-4 w-4" /> إرسال للمراجعة</button>
-          <p className="text-[11px] leading-5 text-muted">المشاركة تحفظ محليًا في نسخة العرض الحالية. لا تُرسل إلى خادم مشترك.</p>
+          <button type="submit" disabled={submitting} className="portal-primary-button disabled:opacity-60"><Send className="h-4 w-4" /> {submitting ? "جارٍ الإرسال…" : "إرسال للمراجعة"}</button>
+          <p className="text-[11px] leading-5 text-muted">تُحفظ المشاركة في قاعدة الموقع وتظهر للإدارة فقط للمراجعة؛ لا تُعرض للطلاب.</p>
         </form>
       </div>
     </section>
@@ -308,11 +326,11 @@ function Initiatives() {
     <section>
       <PageIntro eyebrow="مبادرات الطلاب" title="مبادرات لخدمة المجتمع" detail="تُنشر المبادرات بعد اعتماد بياناتها ومصدرها الرسمي." icon={<Lightbulb />} />
       {items.length ? <ContentCards items={items} /> : <EmptyState text="لا توجد مبادرات منشورة مرتبطة بمصدر معتمد حتى الآن." />}
-      {reviewDoc ? <article className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 sm:p-5">
-        <p className="text-xs font-extrabold text-amber-800">ملف مرتبط بإدارة مصر القديمة وفق تأكيد مقدم الملف</p>
+      {reviewDoc ? <article className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 sm:p-5">
+        <p className="text-xs font-extrabold text-red-800">ملف مرتبط بإدارة مصر القديمة وفق تأكيد مقدم الملف</p>
         <h2 className="mt-1 font-extrabold">{reviewDoc.title}</h2>
-        <p className="mt-1 text-sm leading-6 text-amber-900">{reviewDoc.note}</p>
-        <a href={reviewDoc.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-10 items-center gap-2 text-sm font-extrabold text-amber-900 underline">مراجعة المستند <ExternalLink className="h-4 w-4" /></a>
+        <p className="mt-1 text-sm leading-6 text-red-900">{reviewDoc.note}</p>
+        <a href={reviewDoc.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-10 items-center gap-2 text-sm font-extrabold text-red-900 underline">مراجعة المستند <ExternalLink className="h-4 w-4" /></a>
       </article> : null}
     </section>
   );
@@ -331,7 +349,7 @@ function DocumentCenter() {
       <label className="flex min-h-11 max-w-xl items-center gap-2 rounded-xl border border-line bg-white px-3"><Search className="h-4 w-4 text-teal" /><span className="sr-only">البحث في الوثائق</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث باسم الوثيقة أو رقمها" className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label>
       <div className="my-3 flex flex-wrap gap-2">{categories.map((item) => <button key={item} type="button" onClick={() => setCategory(item)} className={`min-h-10 rounded-full px-4 text-xs font-extrabold ${category === item ? "bg-navy text-white" : "bg-white text-ink-soft"}`}>{item}</button>)}</div>
       {filtered.length ? <div className="grid gap-3 md:grid-cols-2">{filtered.map((doc) => <DocumentCard key={doc.id} doc={doc} />)}</div> : <EmptyState text="لا توجد وثائق تطابق البحث." />}
-      {review.map((doc) => <article key={doc.id} className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-4"><p className="text-xs font-extrabold text-amber-800">مرجع مرفق قيد المراجعة</p><h2 className="mt-1 font-extrabold">{doc.title}</h2><p className="mt-1 text-sm leading-6 text-amber-900">{doc.note}</p><a href={doc.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-10 items-center gap-2 text-sm font-extrabold text-amber-900 underline">عرض الملف <ExternalLink className="h-4 w-4" /></a></article>)}
+      {review.map((doc) => <article key={doc.id} className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4"><p className="text-xs font-extrabold text-red-800">مرجع مرفق قيد المراجعة</p><h2 className="mt-1 font-extrabold">{doc.title}</h2><p className="mt-1 text-sm leading-6 text-red-900">{doc.note}</p><a href={doc.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-10 items-center gap-2 text-sm font-extrabold text-red-900 underline">عرض الملف <ExternalLink className="h-4 w-4" /></a></article>)}
       <p className="mt-5 text-xs leading-6 text-muted">لا يغيّر الموقع النصوص الرسمية. استخدم الملف الأصلي للتحقق من أي مادة أو إجراء.</p>
     </section>
   );
@@ -384,7 +402,7 @@ function AskUnion() {
   const additions = useMemo(() => savedSources.filter((source) => source.published && source.content.trim()), [savedSources]);
   const corpus = useMemo(() => [
     ...verifiedKnowledge,
-    ...additions.map((item) => ({ ...item, source_type: item.source_type, source_title: item.source_title, source_url: item.source_url, source_date: item.source_date, category: item.category, last_updated: item.last_updated, content: item.content })),
+    ...additions.map((item) => ({ ...item, page: undefined as number | undefined, source_type: item.source_type, source_title: item.source_title, source_url: item.source_url, source_date: item.source_date, category: item.category, last_updated: item.last_updated, content: item.content })),
   ], [additions]);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<{ text: string; sourceTitle?: string; sourceUrl?: string; page?: number; found: boolean } | null>(null);
@@ -434,9 +452,12 @@ function ContentDashboard({ onOpen }: { onOpen: (view: string) => void }) {
   const updateKnowledgeSource = useUnion((state) => state.updateKnowledgeSource);
   const removeKnowledgeSource = useUnion((state) => state.removeKnowledgeSource);
   const session = useUnion((state) => state.session);
-  const setLocalEditorMode = useUnion((state) => state.setLocalEditorMode);
+  const setAdminSession = useUnion((state) => state.setAdminSession);
   const answerSuggestion = useUnion((state) => state.answerSuggestion);
   const removeSuggestion = useUnion((state) => state.removeSuggestion);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminError, setAdminError] = useState("");
+  const [adminBusy, setAdminBusy] = useState(false);
   const [kind, setKind] = useState<ManagedContentType>("news");
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
@@ -490,12 +511,32 @@ function ContentDashboard({ onOpen }: { onOpen: (view: string) => void }) {
     document.getElementById("knowledge-editor-title")?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
+  async function saveSuggestion(id: string, reply: string) {
+    try {
+      await updateSharedSiteSuggestion({ data: { id, reply } });
+      answerSuggestion(id, reply);
+      setAdminError("");
+    } catch {
+      setAdminError("تعذر حفظ رد المشاركة. تحققي من الاتصال وحاولي مرة أخرى.");
+    }
+  }
+
+  async function deleteSuggestion(id: string) {
+    try {
+      await removeSharedSiteSuggestion({ data: { id } });
+      removeSuggestion(id);
+      setAdminError("");
+    } catch {
+      setAdminError("تعذر حذف المشاركة. تحققي من الاتصال وحاولي مرة أخرى.");
+    }
+  }
+
   function downloadBackup() {
     const state = useUnion.getState();
     const backup = {
       format: "old-cairo-student-union-local-backup",
       exportedAt: new Date().toISOString(),
-      note: "نسخة محلية من البيانات المحفوظة في هذا المتصفح. لا تحتوي على جلسة تسجيل دخول.",
+      note: "نسخة احتياطية من بيانات الموقع الحالية. لا تحتوي على جلسة تسجيل دخول.",
       data: {
         offices: state.offices,
         plan: state.plan,
@@ -518,13 +559,63 @@ function ContentDashboard({ onOpen }: { onOpen: (view: string) => void }) {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  if (session?.role !== "admin") {
+    return (
+      <section className="mx-auto grid max-w-xl gap-4">
+        <PageIntro eyebrow="إدارة مؤمّنة" title="لوحة إدارة المحتوى" detail="تسجيل دخول الإدارة مطلوب قبل تعديل البيانات المشتركة أو مراجعة مشاركات الطلاب." icon={<ShieldCheck />} />
+        <form
+          className="portal-form"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            setAdminBusy(true);
+            setAdminError("");
+            try {
+              const result = await loginSharedAdmin({ data: { password: adminPassword } });
+              if (!result.ok) {
+                setAdminError(result.reason === "not-configured" ? "لم تُضبط كلمة مرور الإدارة في إعدادات الموقع بعد." : "كلمة المرور غير صحيحة.");
+                return;
+              }
+              const shared = await getSharedSiteState();
+              useUnion.setState(shared.state);
+              setAdminSession(true);
+              setAdminPassword("");
+            } catch {
+              await logoutSharedAdmin().catch(() => undefined);
+              setAdminError("تعذر الاتصال بقاعدة البيانات. تحققي من الاتصال وحاولي مرة أخرى.");
+            } finally {
+              setAdminBusy(false);
+            }
+          }}
+        >
+          <label className="grid gap-1 text-sm font-bold">
+            كلمة مرور الإدارة
+            <input
+              type="password"
+              value={adminPassword}
+              onChange={(event) => setAdminPassword(event.target.value)}
+              autoComplete="current-password"
+              required
+              minLength={20}
+              className="min-h-12 rounded-xl border border-line bg-white px-3 text-ink"
+            />
+          </label>
+          {adminError ? <p role="alert" className="text-sm font-bold text-red">{adminError}</p> : null}
+          <button type="submit" disabled={adminBusy} className="portal-primary-button disabled:opacity-60">
+            <ShieldCheck className="h-4 w-4" /> {adminBusy ? "جارٍ تسجيل الدخول…" : "دخول الإدارة"}
+          </button>
+          <p className="text-xs leading-6 text-muted">صلاحية الإدارة لا تُمنح باسم مستخدم عام؛ كلمة المرور محفوظة على خادم الموقع فقط.</p>
+        </form>
+      </section>
+    );
+  }
+
   return (
     <section>
-      <PageIntro eyebrow="معاينة CMS" title="لوحة إدارة المحتوى" detail="إدارة الأخبار والمحتوى والمصادر ومراجعة مشاركات الطلاب من مساحة واحدة." icon={<ShieldCheck />} />
-      <div className="mb-5 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs leading-6 text-amber-900"><strong>حالة النسخة الحالية:</strong> التعديلات تُحفظ داخل المتصفح فقط. المشروع المرفق لا يربط لوحة الإدارة بحسابات أو قاعدة بيانات مشتركة، لذلك لا تُعدّ هذه صلاحيات نشر فعلية.</div>
+      <PageIntro eyebrow="قاعدة بيانات مشتركة" title="لوحة إدارة المحتوى" detail="تُحفظ التعديلات على الخادم وتظهر لزوار الموقع من أجهزتهم بعد المزامنة." icon={<ShieldCheck />} />
+      {adminError ? <p role="alert" className="mb-4 rounded-xl bg-red-soft p-3 text-sm font-bold text-red">{adminError}</p> : null}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white p-3">
-        <p className="text-sm leading-6 text-ink-soft">يمكن تشغيل أدوات التعديل المحلية لمراجعة تجربة الإدارة على هذا الجهاز فقط.</p>
-        <button type="button" onClick={() => setLocalEditorMode(session?.role !== "admin")} className="min-h-11 rounded-full bg-navy px-4 text-xs font-extrabold text-white">{session?.role === "admin" ? "إيقاف وضع المعاينة" : "تشغيل وضع المعاينة المحلي"}</button>
+        <p className="text-sm leading-6 text-ink-soft">أنتِ مسجّلة كإدارة الموقع. احفظي التعديلات ليتمكن الجميع من رؤيتها.</p>
+        <button type="button" onClick={async () => { try { await logoutSharedAdmin(); } finally { setAdminSession(false); } }} className="min-h-11 rounded-full bg-navy px-4 text-xs font-extrabold text-white">تسجيل خروج الإدارة</button>
       </div>
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <DashboardMetric label="المحتوى المنشور" value={items.filter((item) => item.published).length} />
@@ -533,7 +624,7 @@ function ContentDashboard({ onOpen }: { onOpen: (view: string) => void }) {
         <DashboardMetric label="مشاركات للمراجعة" value={pending.length} />
       </div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white p-3">
-        <p className="text-xs leading-6 text-ink-soft">نزّل نسخة احتياطية من بيانات هذا المتصفح بصيغة JSON، بما فيها المحتوى والمصادر والمشاركات.</p>
+        <p className="text-xs leading-6 text-ink-soft">نزّل نسخة احتياطية من بيانات الموقع بصيغة JSON، بما فيها المحتوى والمصادر والمشاركات.</p>
         <button type="button" onClick={downloadBackup} className="min-h-11 rounded-full border border-navy px-4 text-xs font-extrabold text-navy"><ArrowDownToLine className="me-1 inline h-4 w-4" /> تنزيل نسخة احتياطية</button>
       </div>
       <div className="mb-5 flex flex-wrap gap-2">
@@ -578,9 +669,9 @@ function ContentDashboard({ onOpen }: { onOpen: (view: string) => void }) {
 
       <section className="portal-panel mt-5">
         <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-extrabold">صوت الطالب — مراجعة المشاركات</h2><span className="text-xs text-muted">{pending.length} تنتظر المراجعة</span></div>
-        {suggestions.length ? <div className="mt-3 grid gap-3">{suggestions.map((item) => <SuggestionReview key={item.id} item={item} reply={replyDrafts[item.id] ?? item.reply} onChange={(value) => setReplyDrafts((drafts) => ({ ...drafts, [item.id]: value }))} onSave={() => answerSuggestion(item.id, replyDrafts[item.id] ?? item.reply)} onRemove={() => removeSuggestion(item.id)} />)}</div> : <p className="mt-3 rounded-xl bg-paper p-4 text-sm text-muted">لا توجد مشاركات محفوظة.</p>}
+        {suggestions.length ? <div className="mt-3 grid gap-3">{suggestions.map((item) => <SuggestionReview key={item.id} item={item} reply={replyDrafts[item.id] ?? item.reply} onChange={(value) => setReplyDrafts((drafts) => ({ ...drafts, [item.id]: value }))} onSave={() => { void saveSuggestion(item.id, replyDrafts[item.id] ?? item.reply); }} onRemove={() => { void deleteSuggestion(item.id); }} />)}</div> : <p className="mt-3 rounded-xl bg-paper p-4 text-sm text-muted">لا توجد مشاركات محفوظة.</p>}
       </section>
-      <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl bg-blue-soft p-4 text-xs leading-6 text-navy"><CheckCircle2 className="h-5 w-5 shrink-0" /><span>المحتوى المنشور والمصادر هنا محلية في المتصفح. قبل الاستخدام الرسمي يلزم ربطها بنظام صلاحيات وخادم نشر مشترك.</span><a href={facebookSourceUrl} target="_blank" rel="noreferrer" className="font-extrabold underline">مصدر Facebook الرسمي</a></div>
+      <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl bg-blue-soft p-4 text-xs leading-6 text-navy"><CheckCircle2 className="h-5 w-5 shrink-0" /><span>حفظ المحتوى ومراجعته يتمان عبر قاعدة بيانات الموقع المشتركة.</span><a href={facebookSourceUrl} target="_blank" rel="noreferrer" className="font-extrabold underline">مصدر Facebook الرسمي</a></div>
     </section>
   );
 }
