@@ -42,7 +42,7 @@ export const getSharedSiteState = createServerFn({ method: "GET" }).handler(asyn
 });
 
 export const loginSharedAdmin = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => passwordSchema.parse(data))
+  .validator((data: unknown) => passwordSchema.parse(data))
   .handler(async ({ data }) => {
     const server = await import("./shared-state.server");
     if (!server.isAdminPasswordConfigured()) return { ok: false, reason: "not-configured" as const };
@@ -57,7 +57,7 @@ export const logoutSharedAdmin = createServerFn({ method: "POST" }).handler(asyn
 });
 
 export const saveSharedSiteState = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => sharedStateSchema.parse(data))
+  .validator((data: unknown) => sharedStateSchema.parse(data))
   .handler(async ({ data }) => {
     const server = await import("./shared-state.server");
     await server.writeSharedState(data);
@@ -65,7 +65,7 @@ export const saveSharedSiteState = createServerFn({ method: "POST" })
   });
 
 export const submitSharedSiteSuggestion = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => suggestionSchema.parse(data))
+  .validator((data: unknown) => suggestionSchema.parse(data))
   .handler(async ({ data }) => {
     const server = await import("./shared-state.server");
     await server.submitSharedSuggestion(data.message, data.stage);
@@ -73,7 +73,7 @@ export const submitSharedSiteSuggestion = createServerFn({ method: "POST" })
   });
 
 export const updateSharedSiteSuggestion = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => updateSuggestionSchema.parse(data))
+  .validator((data: unknown) => updateSuggestionSchema.parse(data))
   .handler(async ({ data }) => {
     const server = await import("./shared-state.server");
     await server.updateSharedSuggestion(data.id, data.reply);
@@ -81,7 +81,7 @@ export const updateSharedSiteSuggestion = createServerFn({ method: "POST" })
   });
 
 export const removeSharedSiteSuggestion = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => removeSuggestionSchema.parse(data))
+  .validator((data: unknown) => removeSuggestionSchema.parse(data))
   .handler(async ({ data }) => {
     const server = await import("./shared-state.server");
     await server.removeSharedSuggestion(data.id);
