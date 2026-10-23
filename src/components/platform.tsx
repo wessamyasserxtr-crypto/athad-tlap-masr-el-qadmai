@@ -465,7 +465,7 @@ function SiteFooter({ onOpen }: { onOpen: (view: View) => void }) {
           <a href="https://www.facebook.com/share/g/19inhzpktF/" target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-10 items-center gap-2 text-xs font-bold text-teal hover:underline">مجموعة الإدارة على Facebook <ArrowLeft className="h-3.5 w-3.5" /></a>
         </div>
       </div>
-      <div className="mx-auto mt-7 max-w-6xl border-t border-line pt-4 text-center text-[10px] text-muted">طالب عالمي متجذر — جذور في أرض الفراعنة، وأفق مفتوح على العالم · ٢٠٢٦ / ٢٠٢٧</div>
+      <div className="mx-auto mt-7 max-w-6xl border-t border-line pt-4 text-center text-[10px] text-muted"><p>طالب عالمي متجذر — جذور في أرض الفراعنة، وأفق مفتوح على العالم · ٢٠٢٦ / ٢٠٢٧</p><p className="mt-2">© حقوق الملكية محفوظة لإدارة مصر القديمة ووسام ياسر</p></div>
     </footer>
   );
 }
