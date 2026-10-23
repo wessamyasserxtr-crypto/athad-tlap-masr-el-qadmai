@@ -731,9 +731,7 @@ function Offices({
           الترتيب من اليمين للشمال: الأمين، الأمين المساعد، ثم اللجان الثقافية
           والرياضية والاجتماعية والفنية والعلمية.
         </p>
-        {stage !== "secondary" ? (
-          <p className="mt-1 text-xs text-muted">يمكن للإدارة إضافة صورة مستقلة لكل عضو.</p>
-        ) : null}
+        <p className="mt-1 text-xs text-muted">يمكن للإدارة إضافة صورة مستقلة لكل عضو.</p>
         <button
           type="button"
           onClick={toggleSpeech}
@@ -865,10 +863,8 @@ function MemberCard({
           </button>
         ) : null}
       </div>
-      {stage !== "secondary" ? (
-        <div
-          className={`mt-3 flex gap-4 rounded-2xl bg-paper p-4 ${featured ? "flex-col items-center text-center" : "items-center"}`}
-        >
+      <div
+          className={`mt-3 flex gap-4 rounded-2xl bg-paper p-4 ${featured ? "flex-col items-center text-center" : "items-center"}`}>
           {member.photo ? (
             <img
               src={member.photo}
@@ -941,7 +937,6 @@ function MemberCard({
             ) : null}
           </div>
         </div>
-      ) : null}
       {editing ? (
         <div className="mt-3 grid gap-2">
           <label className="grid gap-1 text-xs font-bold text-muted">
