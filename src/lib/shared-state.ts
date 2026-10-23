@@ -16,7 +16,7 @@ export type SharedSiteState = {
   knowledgeSources: KnowledgeSourceRecord[];
 };
 
-const passwordSchema = z.object({ password: z.string().min(1).max(256) });
+const passwordSchema = z.object({ password: z.string().min(1).max(20) });
 const sharedStateSchema = z.object({
   offices: z.array(z.unknown()),
   plan: z.array(z.unknown()),

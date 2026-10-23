@@ -9,7 +9,7 @@ const SESSION_SECONDS = 60 * 60 * 12;
 
 function adminPassword(): string | null {
   const value = process.env.ADMIN_PASSWORD?.trim();
-  return value && value.length >= 20 ? value : null;
+  return value && value.length >= 1 && value.length <= 20 ? value : null;
 }
 
 function sign(payload: string, secret: string): string {

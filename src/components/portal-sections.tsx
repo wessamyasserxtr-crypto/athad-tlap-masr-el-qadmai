@@ -595,7 +595,7 @@ function ContentDashboard({ onOpen }: { onOpen: (view: string) => void }) {
               onChange={(event) => setAdminPassword(event.target.value)}
               autoComplete="current-password"
               required
-              minLength={20}
+              minLength={1} maxLength={20}
               className="min-h-12 rounded-xl border border-line bg-white px-3 text-ink"
             />
           </label>
