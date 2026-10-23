@@ -70,8 +70,8 @@ type UnionState = {
   knowledgeSources: KnowledgeSourceRecord[];
   session: Session | null;
   login: (name: string, number: string) => string | null;
+  setAdminSession: (enabled: boolean) => void;
   logout: () => void;
-  setLocalEditorMode: (enabled: boolean) => void;
   updateMember: (
     stage: StageId,
     role: RoleId,
@@ -121,21 +121,21 @@ export const useUnion = create<UnionState>()(
         const cleanName = name.trim().replace(/\s+/g, " ");
         const cleanNumber = number.trim();
         if (!cleanName || !cleanNumber) return "اكتب الاسم والرقم.";
-        const isAdmin = cleanName.toLowerCase() === "admin";
         set({
           session: {
-            name: isAdmin ? "admin" : cleanName,
+            name: cleanName,
             number: cleanNumber,
-            role: isAdmin ? "admin" : "student",
+            role: "student",
           },
         });
         return null;
       },
-      logout: () => set({ session: null }),
-      setLocalEditorMode: (enabled) =>
+      setAdminSession: (enabled) =>
         set({
-          session: enabled ? { name: "معاينة محلية", number: "", role: "admin" } : null,
+          session: enabled ? { name: "إدارة الاتحاد", number: "", role: "admin" } : null,
+          ...(enabled ? {} : { suggestions: [] }),
         }),
+      logout: () => set({ session: null }),
       updateMember: (stage, role, name, votes) =>
         set({
           offices: get().offices.map((office) =>
