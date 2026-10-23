@@ -40,6 +40,8 @@ import {
   type StageId,
 } from "@/lib/union-data";
 import { useUnion } from "@/lib/union-store";
+import { getSharedSiteState, saveSharedSiteState, submitSharedSiteSuggestion } from "@/lib/shared-state";
+import type { SharedSiteState } from "@/lib/shared-state";
 import { PortalSurface, QuickAccess, OfficialDocumentStrip, type PortalView } from "@/components/portal-sections";
 import { officialDocuments } from "@/lib/knowledge";
 
@@ -66,6 +68,12 @@ export function Platform() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [introFinished, setIntroFinished] = useState(false);
+  const [syncNotice, setSyncNotice] = useState("");
+  const syncReady = useRef(false);
+  const saveTimer = useRef<number | null>(null);
+  const remoteUpdatedAt = useRef<string | null>(null);
+  const session = useUnion((state) => state.session);
   const showPlan = true;
   const labels: Partial<Record<View, string>> = { about: "عن الاتحاد", faq: "دليل الطالب", hub: "اتحاد الطلاب 360°", events: "الفعاليات", competitions: "المسابقات", talents: "مواهب الطلاب", initiatives: "المبادرات", schools: "مدارسنا", achievements: "الإنجازات", laws: "القوانين واللوائح", discipline: "لائحة الانضباط", ask: "اسأل الاتحاد", desk: "إدارة المحتوى", ideas: "مساعد الأفكار", impact: "أثر المدارس", box: "صوت الطالب" };
   const currentView = nav.find((item) => item.id === view)?.label ?? labels[view] ?? "الاتحاد";
@@ -87,6 +95,100 @@ export function Platform() {
   }, []);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => setIntroFinished(true), 5000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    let active = true;
+    void getSharedSiteState()
+      .then(({ state, isAdmin, updatedAt }) => {
+        if (!active) return;
+        syncReady.current = false;
+        remoteUpdatedAt.current = updatedAt;
+        useUnion.setState({
+          ...state,
+          session: isAdmin
+            ? { name: "إدارة الاتحاد", number: "", role: "admin" }
+            : useUnion.getState().session,
+        });
+        syncReady.current = true;
+        setSyncNotice("");
+      })
+      .catch(() => {
+        if (!active) return;
+        syncReady.current = true;
+        setSyncNotice("تعذر الاتصال بقاعدة البيانات المشتركة.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const refresh = () => {
+      if (!syncReady.current || useUnion.getState().session?.role === "admin") return;
+      void getSharedSiteState()
+        .then(({ state, isAdmin, updatedAt }) => {
+          if (isAdmin || useUnion.getState().session?.role === "admin") return;
+          if (updatedAt === remoteUpdatedAt.current) return;
+          remoteUpdatedAt.current = updatedAt;
+          useUnion.setState({ ...state, session: null });
+        })
+        .catch(() => undefined);
+    };
+    const interval = window.setInterval(refresh, 20_000);
+    return () => window.clearInterval(interval);
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const unsubscribe = useUnion.subscribe((state, previous) => {
+      if (!syncReady.current || state.session?.role !== "admin") return;
+      const changed =
+        state.offices !== previous.offices ||
+        state.plan !== previous.plan ||
+        state.planPublished !== previous.planPublished ||
+        state.news !== previous.news ||
+        state.schoolStories !== previous.schoolStories ||
+        state.galleryPhotos !== previous.galleryPhotos ||
+        state.galleryPhotoEdits !== previous.galleryPhotoEdits ||
+        state.managedContent !== previous.managedContent ||
+        state.knowledgeSources !== previous.knowledgeSources;
+      if (!changed) return;
+      if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
+      saveTimer.current = window.setTimeout(() => {
+        const latest = useUnion.getState();
+        if (latest.session?.role !== "admin") return;
+        const sharedState: SharedSiteState = {
+          offices: latest.offices,
+          plan: latest.plan,
+          planPublished: latest.planPublished,
+          news: latest.news,
+          suggestions: latest.suggestions,
+          schoolStories: latest.schoolStories,
+          galleryPhotos: latest.galleryPhotos,
+          galleryPhotoEdits: latest.galleryPhotoEdits,
+          managedContent: latest.managedContent,
+          knowledgeSources: latest.knowledgeSources,
+        };
+        void saveSharedSiteState({ data: sharedState })
+          .then((result) => {
+            remoteUpdatedAt.current = result.savedAt;
+            setSyncNotice("تم حفظ التغييرات لتظهر عند الجميع.");
+          })
+          .catch(() => setSyncNotice("تعذر الحفظ؛ تحققي من الاتصال وسجّلي دخول الإدارة من جديد."));
+      }, 450);
+    });
+    return () => {
+      unsubscribe();
+      if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
+    };
+  }, [hydrated]);
+
+  useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -101,7 +203,20 @@ export function Platform() {
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
 
-  if (!hydrated) return <main className="grid min-h-screen place-items-center bg-paper text-sm font-bold text-muted">جارٍ تجهيز المنصة…</main>;
+  if (!introFinished) return <EntrySplash />;
+  if (!hydrated) {
+    return (
+      <main className="entry-screen entry-loading-screen" aria-live="polite">
+        <div className="entry-frame">
+          <div className="entry-emblem" aria-hidden="true"><img src="/gallery/union-logo.jpeg" alt="" /></div>
+          <p className="entry-kicker">إدارة مصر القديمة التعليمية</p>
+          <h1 className="entry-copy text-2xl font-black">بنجهّز المنصة</h1>
+          <p className="entry-wait">لحظات وهنفتح شاشة تسجيل الدخول</p>
+        </div>
+      </main>
+    );
+  }
+  if (!session) return <EntryLogin onSuccess={() => setView("home")} />;
 
   return (
     <div className="min-h-screen">
@@ -139,6 +254,7 @@ export function Platform() {
             <kbd className="hidden rounded border border-line px-1 text-[10px] text-muted lg:inline">Ctrl K</kbd>
           </button>
           <div className="ms-auto flex items-center gap-2">
+            {session?.role === "admin" ? <span aria-live="polite" className="hidden text-[11px] font-bold text-teal lg:inline">{syncNotice || "متصلة بقاعدة البيانات"}</span> : null}
             <button type="button" onClick={() => navigate("desk")} className="hidden min-h-11 items-center gap-2 rounded-full bg-navy px-4 text-xs font-extrabold text-white sm:inline-flex"><Shield className="h-4 w-4" /> إدارة المحتوى</button>
             <button
               type="button"
@@ -446,7 +562,7 @@ function EntryLogin({ onSuccess }: { onSuccess: () => void }) {
           <button type="submit" className="entry-submit">
             دخول الموقع <span aria-hidden="true">←</span>
           </button>
-          <p className="text-center text-xs text-muted">دخول الإدارة متاح بكتابة admin في خانة الاسم.</p>
+          <p className="text-center text-xs text-muted">صلاحيات الإدارة تتطلب كلمة مرور خاصة من لوحة المحتوى.</p>
         </form>
       </section>
     </main>
@@ -1835,6 +1951,7 @@ function Box() {
   const [stage, setStage] = useState("عام");
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <section className="grid gap-4 lg:grid-cols-2">
@@ -1844,13 +1961,24 @@ function Box() {
         <p className="mt-1 text-sm leading-7 text-muted">أرسل اقتراحًا أو فكرة أو ملاحظة للاتحاد. الرسائل تمر على مراجعة الإدارة ولا تُنشر تلقائيًا.</p>
           <form
             className="portal-form mt-4"
-            onSubmit={(event) => {
+            onSubmit={async (event) => {
               event.preventDefault();
-              const result = addSuggestion(message, stage);
-              setError(result ?? "");
-              if (!result) {
+              const validationError = message.trim().length < 4 ? "اكتب المشاركة بوضوح." : "";
+              if (validationError) {
+                setError(validationError);
+                return;
+              }
+              setSubmitting(true);
+              setError("");
+              try {
+                await submitSharedSiteSuggestion({ data: { message, stage } });
+                addSuggestion(message, stage);
                 setMessage("");
                 setSent(true);
+              } catch {
+                setError("تعذر حفظ المشاركة الآن. تحققي من اتصال الإنترنت وحاولي مرة أخرى.");
+              } finally {
+                setSubmitting(false);
               }
             }}
           >
@@ -1879,9 +2007,9 @@ function Box() {
             />
             </label>
             {error ? <p className="text-sm font-bold text-red">{error}</p> : null}
-            {sent ? <p role="status" className="text-sm font-bold text-teal">تم حفظ المشاركة للمراجعة في نسخة العرض الحالية.</p> : null}
-            <button type="submit" className="portal-primary-button"><SendIcon /> إرسال للمراجعة</button>
-            <p className="text-[11px] leading-5 text-muted">في النسخة الحالية تُحفظ الرسالة محليًا في هذا المتصفح فقط؛ لا تُرسل إلى جهة خارجية.</p>
+            {sent ? <p role="status" className="text-sm font-bold text-teal">وصلت المشاركة إلى صندوق مراجعة الإدارة.</p> : null}
+            <button type="submit" disabled={submitting} className="portal-primary-button disabled:opacity-60"><SendIcon /> {submitting ? "جارٍ الإرسال…" : "إرسال للمراجعة"}</button>
+            <p className="text-[11px] leading-5 text-muted">تُحفظ المشاركة في قاعدة الموقع وتظهر للإدارة فقط للمراجعة؛ لا تُعرض للطلاب.</p>
           </form>
       </div>
       <aside className="portal-panel h-fit">
@@ -1916,7 +2044,7 @@ function Desk({ onOpen }: { onOpen: (view: View) => void }) {
   if (session?.role !== "admin") {
     return (
       <p className="rounded-2xl border border-line bg-card p-6 text-sm">
-        اللوحة دي للأدمن. ادخل بالاسم admin وأي رقم.
+        لوحة الإدارة تتطلب تسجيل الدخول بكلمة المرور الخاصة.
       </p>
     );
   }
@@ -2074,7 +2202,7 @@ function LoginSheet({ onClose }: { onClose: () => void }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-extrabold">دخول</h2>
-            <p className="text-sm text-muted">الاسم والرقم بس. لو الاسم admin هتدخل كأدمن.</p>
+            <p className="text-sm text-muted">هذا دخول طلابي ولا يمنح صلاحية إدارة المحتوى.</p>
           </div>
           <button
             type="button"
