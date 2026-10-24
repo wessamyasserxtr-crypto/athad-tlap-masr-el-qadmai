@@ -128,19 +128,51 @@ export function Platform() {
 
   useEffect(() => {
     if (!hydrated) return;
-    const refresh = () => {
-      if (!syncReady.current || useUnion.getState().session?.role === "admin") return;
-      void getSharedSiteState()
-        .then(({ state, isAdmin, updatedAt }) => {
-          if (isAdmin || useUnion.getState().session?.role === "admin") return;
-          if (updatedAt === remoteUpdatedAt.current) return;
+    let active = true;
+    let timer: number | undefined;
+    let failures = 0;
+    const normalDelay = () => 30_000 + Math.floor(Math.random() * 5_000);
+    const schedule = (delay: number) => {
+      timer = window.setTimeout(refresh, delay);
+    };
+    const refresh = async () => {
+      if (!active) return;
+      if (document.visibilityState === "hidden") {
+        schedule(60_000 + Math.floor(Math.random() * 20_000));
+        return;
+      }
+      if (!syncReady.current || useUnion.getState().session?.role === "admin") {
+        schedule(normalDelay());
+        return;
+      }
+      try {
+        const { state, isAdmin, updatedAt } = await getSharedSiteState();
+        if (!active) return;
+        failures = 0;
+        if (!isAdmin && useUnion.getState().session?.role !== "admin" && updatedAt !== remoteUpdatedAt.current) {
           remoteUpdatedAt.current = updatedAt;
           useUnion.setState({ ...state, session: null });
-        })
-        .catch(() => undefined);
+        }
+      } catch {
+        failures = Math.min(failures + 1, 3);
+      }
+      const backoff = failures === 0
+        ? 30_000
+        : Math.min(120_000, 30_000 * 2 ** (failures - 1));
+      schedule(backoff + Math.floor(Math.random() * 5_000));
     };
-    const interval = window.setInterval(refresh, 20_000);
-    return () => window.clearInterval(interval);
+    schedule(20_000 + Math.floor(Math.random() * 5_000));
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      if (timer !== undefined) window.clearTimeout(timer);
+      schedule(Math.floor(Math.random() * 5_000));
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      active = false;
+      if (timer !== undefined) window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [hydrated]);
 
   useEffect(() => {
